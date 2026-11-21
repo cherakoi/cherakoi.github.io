@@ -1,0 +1,7 @@
+.git
+.gitignore
+**/*.zip
+data_example/
+tests/
+*.md
+node_modules/

@@ -1,0 +1,7 @@
+# Never commit experimental or sensitive XRF cubes.
+/data_example/**
+!/data_example/.gitkeep
+node_modules/
+dist/
+.DS_Store
+*.log
