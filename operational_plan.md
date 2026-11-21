@@ -31,8 +31,8 @@ Nginx → serves only index.html + src/ (no XRF request/POST routes)
 | ID | Requirement | Minimum evidence | Status |
 |---|---|---|---|
 | F1 | NPZ key `img`, (H,W,C) + optional energy | Numeric parser tests + upload of real fixture | Browser-verified: fixture NPZ upload, map, counts, 0.1/8.1 keV calibration |
-| F2 | HDF5 `/img` + optional `/energy` | Browser upload of synthetic H5 then real H5 | Browser-verified (synthetic H5, identical render to NPZ); real H5 pending M3 |
-| F3 | C=512,1024 and arbitrary C with conserved count sums | tests with C=2,5,1024; compare with xrfraw | Verified: unit tests + 1024→512 in browser (label `3×3×1024 → 512`); xrfraw cross-check pending |
+| F2 | HDF5 `/img` + optional `/energy` | Browser upload of synthetic H5 then real H5 | Verified: synthetic H5 and real H5 (`mappa11_2048.h5`) both uploaded, identical pixel-map hash to the matching NPZ |
+| F3 | C=512,1024 and arbitrary C with conserved count sums | tests with C=2,5,1024; compare with xrfraw | Verified: unit tests; 1024→512 synthetic in browser; **real-data 2048→512 pixel spectra identical to `xrfraw.rebin_to`**, C=500 kept as-is (see scientific_notes §8) |
 | F4 | Right fingertip selects XRF pixel, outside/missing silences | Mouse mode + two-handed camera smoke test with mirror & crop | Partial: mouse selection, letterbox and off-map silence browser-verified; live camera pending |
 | F5 | Left absent mix / left present isolated bin, bottom→low, top→high | numeric policy tests + live audio | Partial: poly (multi-bin), mono (exactly 1 bin, bottom→low/top→high) and silent paths verified via worklet amplitude spy; audible output pending |
 | F6 | Accessible, fluid DHLab dark UI | screenshot + manual inspection desktop/mobile | Partial: desktop + 390px viewport, no horizontal overflow, topbar #4196B4; manual aesthetic review pending |
@@ -44,7 +44,7 @@ Nginx → serves only index.html + src/ (no XRF request/POST routes)
 - **M0 — inventory & decisions.** Inspect four supplied zips, two XRF repos; outline KEEP/REMOVE/ADD, choose no-React static strategy. **Done (source-based review).**
 - **M1 — runnable scaffold & pure algorithms.** Static layout, readers, rebin, synthetic fixture, two-hand extraction, audio DSP, unit tests, docs. **Draft implemented; numeric tests pass; runtime paths unverified.**
 - **M2 — browser end-to-end.** On desktop Chrome/Firefox (real server/HTTPS): synthetic NPZ+H5, camera, MediaPipe, wasm fetch, AudioWorklet and interactions; observe logs; fix actual runtime issues. **Executed in headless Chromium 145 on 2026-11-21 (see `timeline.md`); live camera + audible audio remain.**
-- **M3 — scientifically correct real-data acceptance.** Test the user's NPZ and H5; shape, dtype, calibration, mask handling, consistent counts against xrfraw reference, non-divisible C policy. **Next after M2.**
+- **M3 — scientifically correct real-data acceptance.** Executed 2026-11-21 in headless Chromium 145 on the user's 3 NPZs + reference H5 (see `timeline.md`): load/render/calibration labels, 2048→512 rebin identical to `xrfraw.rebin_to` at pixel level, NPZ↔H5 map-identical, audio policy on real counts. Remaining: non-divisible-C policy (no such real file yet), energy convention for the uncalibrated C=500 cubes (user decision, `to_do.md`), live FPS/CPU on hardware.
 - **M4 — performance, deployment hardening & release.** Large H5 chunk/worker strategy if needed, benchmark 24/32/64/512 voices, vendored offline assets optional, test Nginx behind TLS, license and attribution. **Deferred.**
 
 **Go/no-go for a demo:** only mark app feature-complete once F1-F5 pass in browser on real hardware, including without left hand (poly) and with left hand (mono); validate mute upon right-hand loss.

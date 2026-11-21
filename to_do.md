@@ -13,12 +13,13 @@
 - [ ] Audible check: no clipping/dropouts, perceived bottom→low/top→high, volume behavior.
 - [ ] Docker/Nginx build and deploy smoke test on host (Docker not available in this sandbox).
 
-## Next (M3: real XRF)
+## Next (M3: real XRF) — executed 2026-11-21, see `timeline.md`
 
-- [ ] User provides own NPZ in ignored `data_example/`; inspect only metadata and small sample first, not entire array or uploads to third-party services.
-- [ ] Validate `C=512/1024/other`, monotonic energy, count totals against xrfraw, difference between zero and unacquired mask.
-- [ ] Decide non-divisible C rebin policy and exact acoustic mapping: topK vs all voices, amplitude linear/sqrt/log.
-- [ ] Measure UI inference FPS, audio CPU, memory (with actual C and H×W), responsiveness to loss of hand.
+- [x] User provides own NPZ in ignored `data_example/`; inspect only metadata and small sample first, not entire array or uploads to third-party services. — 3 NPZs inspected locally, metadata only.
+- [x] Validate `C=512/1024/other`, monotonic energy, count totals against xrfraw, difference between zero and unacquired mask. — C=500 (kept as-is) and C=2048→512 (4:1 sum) verified in-app on real data; pixel spectra identical to `xrfraw.rebin_to` (converter venv); mask ≡ nonzero in mappa11 (redundant there). **Open:** the two C=500 files carry no `energy` — see below for the undecided convention.
+- [ ] Decide non-divisible C rebin policy and exact acoustic mapping: topK vs all voices, amplitude linear/sqrt/log. — Still open (no real file with non-divisible C>512; 500 and 2048 both handled by current policy).
+- [ ] Measure UI inference FPS, audio CPU, memory (with actual C and H×W), responsiveness to loss of hand. — Needs the live-camera/audio hardware run; headless only.
+- [ ] **Decision (user):** energy convention for the uncalibrated C=500 cubes — (A) keep current: bin index normalized, no keV label (app already does this, "non calibrato"); (B) add an `m,q` fallback read from attrs/H5 attributes when present (M4 item, would need the real calibration for these two files); (C) reject files without energy. Not chosen arbitrarily.
 
 ## Later (M4)
 

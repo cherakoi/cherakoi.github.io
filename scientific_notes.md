@@ -47,3 +47,11 @@ These gain choices are **musical design decisions** rather than uniquely implied
 ## 7. Privacy and external library considerations
 
 Image/XRF payloads are not uploaded by the CHerakoi source. The MediaPipe npm package documentation (November 2026) nevertheless reports usage/performance metrics collection; before public deployment, review the precise SDK privacy behavior and institutional consent/compliance. Serving the core assets from a local proxy does not by itself eliminate SDK telemetry. 
+
+## 8. Real-data observations (2026-11-21)
+
+Observed on the user's three NPZs (private; metadata inspected locally, nothing uploaded):
+
+- **mappa11 (76×286×2048, uint32).** Converter attrs (JSON) record `n_events = 19,825,090`, equal to the `img` sum; `mask` True fraction (99.646%) equals the nonzero-pixel fraction exactly — in this cube the mask is redundant, but the app still does not read it (see §6). `energy[0] = −0.0356 keV` is the calibration offset `q = −0.0355556` (m = 0.0207407 keV/ch), not an acquired negative-energy bin; the app's derived-bin calibration shows midpoints (−0.004 keV first derived bin) per §2, and the raw arrays are never modified. The file was produced by the converter from 16384 raw channels with `rebin size=8 how=sum` (16384→2048); the app's further 2048→512 4:1 sum is count-conserving. Both rebin stages verified against `xrfraw.rebin_to` (converter venv) at pixel level on 2026-11-21.
+- **Mantegna (76×177×500) and Ragazzo (145×212×500), float32 counts, no `energy`.** C=500 < 512 so no rebin applies; the app treats them as uncalibrated ADC bins ("ADC bins · non calibrato") and normalizes bin index to [0,1] for frequency mapping. Counts are float (calibrated pipeline), and uint32 integer arithmetic in the threshold path is not assumed anywhere in the app (comparisons only), so both dtypes behave the same.
+- **Open decision (user, see `to_do.md`):** the energy convention for uncalibrated cubes — keep the current bin-index behavior (A), add an `m,q` fallback from attrs/H5 attributes when present (B, would need the real calibration for these two files), or reject files without energy (C). No choice was made. 
