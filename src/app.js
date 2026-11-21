@@ -1,7 +1,7 @@
 import {createDemoCube,getSpectrum,sumMap,chooseAmplitudes} from './cube.js';
 import {readXrfFile} from './io.js';
 import {SpectralAudio} from './audio.js';
-import {HandTracker} from './hands.js';
+import {HandTracker,drawHandSkeleton} from './hands.js';
 
 const el=id=>document.getElementById(id);
 const map=el('map'),ctx=map.getContext('2d');
@@ -24,24 +24,45 @@ function showMetadata(name) {
   el('voices-value').textContent=el('voices').value;
 }
 
+// 256-entry colormap LUTs. terreic and grey are exact; viridis and inferno are
+// linear interpolations of the classic matplotlib stop sets (visually
+// equivalent, not the exact 256-entry tables).
+function lutFromStops(stops){
+  const lut=new Uint8Array(768),n=stops.length;
+  for(let i=0;i<256;i++){const t=i/255*(n-1),k=Math.min(n-2,t|0),f=t-k;
+    for(let c=0;c<3;c++)lut[i*3+c]=Math.round(stops[k][c]+(stops[k+1][c]-stops[k][c])*f);}
+  return lut;
+}
+const COLORMAPS={
+  terreic:(()=>{const lut=new Uint8Array(768);for(let v=0;v<256;v++){lut[v*3]=Math.round(v*.79);lut[v*3+1]=Math.round(v*.93);lut[v*3+2]=v;}return lut;})(),
+  grey:(()=>{const lut=new Uint8Array(768);for(let v=0;v<256;v++)lut.fill(v,v*3,v*3+3);return lut;})(),
+  viridis:lutFromStops([[68,1,84],[72,40,120],[62,74,137],[49,104,142],[38,130,142],[33,145,140],[53,183,121],[110,206,88],[181,222,43],[253,231,37]]),
+  inferno:lutFromStops([[0,0,4],[66,10,104],[147,38,103],[221,81,58],[252,253,191]])
+};
+let mapSums=null,mapScale=1;
+function buildHeatmap(name){
+  if(!mapSums)return;
+  const lut=COLORMAPS[name]||COLORMAPS.terreic;
+  const pix=heatmap.getContext('2d').createImageData(heatmap.width,heatmap.height);
+  for(let i=0;i<mapSums.length;i++){
+    const u=Math.min(255,Math.round(255*Math.pow(Math.log1p(mapSums[i])/mapScale,1.2)));
+    pix.data[i*4]=lut[u*3];pix.data[i*4+1]=lut[u*3+1];pix.data[i*4+2]=lut[u*3+2];pix.data[i*4+3]=255;
+  }
+  heatmap.getContext('2d').putImageData(pix,0,0);
+}
 function loadCube(nextCube,name){
   audio.silence();cube=nextCube;hands={left:null,right:null};currentPixel=null;
   heatmap=document.createElement('canvas');heatmap.width=cube.width;heatmap.height=cube.height;
-  const pix=heatmap.getContext('2d').createImageData(cube.width,cube.height);
   const sums=sumMap(cube);
+  mapSums=sums;
   let maxCount=0;for(const n of cube.data)maxCount=Math.max(maxCount,n);
   const thresholdMax=Math.max(100,Math.ceil(maxCount));
   el('threshold').max=thresholdMax;el('threshold').step=Math.max(1,Math.ceil(thresholdMax/500));
   if(+el('threshold').value>thresholdMax)el('threshold').value=thresholdMax;
   el('threshold-value').textContent=el('threshold').value;
   let max=0;for(const n of sums)max=Math.max(max,n);
-  const scale=Math.log1p(max)||1;
-  for(let i=0;i<sums.length;i++){
-    const t=Math.log1p(sums[i])/scale;
-    const v=Math.round(255*Math.pow(t,1.2));
-    pix.data.set([Math.round(v*.79),Math.round(v*.93),v,255],i*4);
-  }
-  heatmap.getContext('2d').putImageData(pix,0,0);
+  mapScale=Math.log1p(max)||1;
+  buildHeatmap(el('colormap').value);
   showMetadata(name);
   el('camera-start').disabled=false;el('audio-start').disabled=false;
   if(audioReady)audio.configure(cube,...frequencyRange());
@@ -88,6 +109,10 @@ function renderMap() {
     const y=hands.left.y*map.height;
     ctx.strokeStyle='#e4aa76a0';ctx.setLineDash([5,7]);ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(map.width,y);ctx.stroke();ctx.setLineDash([]);
   }
+  if(hands.skeleton){
+    drawHandSkeleton(ctx,hands.skeleton.right,{width:map.width,height:map.height},'#71d7ed');
+    drawHandSkeleton(ctx,hands.skeleton.left,{width:map.width,height:map.height},'#e4aa76');
+  }
   drawMarker(hands.right,'#71d7ed','R');drawMarker(hands.left,'#e4aa76','L');
 }
 function renderSpectrum(counts,selectedBin) {
@@ -130,6 +155,22 @@ function render() {
   el('spectrum-meta').textContent=selectedBin===null?`${cube.channels} bins`:`Bin ${selectedBin} · ${counts[selectedBin].toFixed(1)} conteggi`;
 }
 function updateHands(next){hands=next;render();}
+const overlay=el('hands-overlay');
+function drawOverlaySkeleton(){
+  if(!overlay.clientWidth||!overlay.clientHeight)return;
+  overlay.width=overlay.clientWidth;overlay.height=overlay.clientHeight;
+  const video=el('webcam');
+  const vw=video.videoWidth||640,vh=video.videoHeight||480;
+  const s=Math.min(overlay.width/vw,overlay.height/vh);
+  const w=vw*s,h=vh*s,ox=(overlay.width-w)/2,oy=(overlay.height-h)/2;
+  const octx=overlay.getContext('2d');
+  octx.save();octx.translate(ox,oy);
+  if(hands.skeleton){
+    drawHandSkeleton(octx,hands.skeleton.right,{width:w,height:h},'#71d7ed');
+    drawHandSkeleton(octx,hands.skeleton.left,{width:w,height:h},'#e4aa76');
+  }
+  octx.restore();
+}
 
 el('demo').addEventListener('click',()=>loadCube(createDemoCube(),'Demo sintetica (60×96×128)'));
 el('file').addEventListener('change',async event=>{
@@ -144,7 +185,7 @@ el('camera-start').addEventListener('click',async()=>{
   message('Inizializzazione MediaPipe e richiesta accesso camera…');
   try {
     if(el('mouse-mode').checked){el('mouse-mode').checked=false;updateHands({left:null,right:null});}
-    tracker=new HandTracker(el('webcam'),updateHands);
+    tracker=new HandTracker(el('webcam'),next=>{updateHands(next);drawOverlaySkeleton();});
     await tracker.start();
     el('camera-stop').disabled=false;
     message('Camera attiva: indice destro sul pixel, indice sinistro per isolare una frequenza.');
@@ -168,18 +209,36 @@ for(const id of ['freq-min','freq-max'])el(id).addEventListener('change',()=>{
   if(!audioReady||!cube)return;
   try{audio.configure(cube,...frequencyRange());render();}catch(error){message(error.message,true);}
 });
+el('colormap').addEventListener('change',()=>{buildHeatmap(el('colormap').value);render();});
+// Mouse test: cursor = right index; Shift = left hand at cursor; Shift+wheel
+// moves the virtual left hand vertically (mono); releasing Shift returns to polyphony.
+let mouseRight=null,shiftDown=false,wheelLeftY=null;
+function applyMouseHands(){
+  const left=(shiftDown&&mouseRight)?{x:mouseRight.x,y:wheelLeftY===null?mouseRight.y:wheelLeftY}:null;
+  updateHands({right:mouseRight,left});
+}
 el('mouse-mode').addEventListener('change',()=>{
   if(el('mouse-mode').checked&&tracker){tracker.stop();tracker=null;el('camera-stop').disabled=true;el('camera-start').disabled=false;}
+  mouseRight=null;shiftDown=false;wheelLeftY=null;
   updateHands({right:null,left:null});
-  if(el('mouse-mode').checked)message('Mouse test: sposta il cursore sulla mappa; tieni premuto Shift per simulare la sinistra.');
+  if(el('mouse-mode').checked)message('Mouse test: cursore sulla mappa; Shift = mano sinistra; Shift+rotella = sinistra su/giù; rilasciato Shift = polifonia.');
 });
 map.addEventListener('pointermove',event=>{
   if(!el('mouse-mode').checked||!cube)return;
   const rect=map.getBoundingClientRect();
-  const point={x:(event.clientX-rect.left)/rect.width,y:(event.clientY-rect.top)/rect.height};
-  updateHands({right:point,left:event.shiftKey?point:null});
+  mouseRight={x:(event.clientX-rect.left)/rect.width,y:(event.clientY-rect.top)/rect.height};
+  if(event.shiftKey!==shiftDown)shiftDown=event.shiftKey;
+  applyMouseHands();
 });
-map.addEventListener('pointerleave',()=>{if(el('mouse-mode').checked)updateHands({right:null,left:null});});
-window.addEventListener('blur',()=>{if(el('mouse-mode').checked)updateHands({right:null,left:null});});
+map.addEventListener('pointerleave',()=>{if(el('mouse-mode').checked){mouseRight=null;applyMouseHands();}});
+map.addEventListener('wheel',event=>{
+  if(!el('mouse-mode').checked||!shiftDown||!mouseRight)return;
+  event.preventDefault();
+  wheelLeftY=Math.max(0,Math.min(1,(wheelLeftY===null?mouseRight.y:wheelLeftY)-event.deltaY*0.0025));
+  applyMouseHands();
+},{passive:false});
+window.addEventListener('keydown',event=>{if(event.key==='Shift'&&!shiftDown){shiftDown=true;if(el('mouse-mode').checked)applyMouseHands();}});
+window.addEventListener('keyup',event=>{if(event.key==='Shift'){shiftDown=false;wheelLeftY=null;if(el('mouse-mode').checked)applyMouseHands();}});
+window.addEventListener('blur',()=>{if(el('mouse-mode').checked){shiftDown=false;mouseRight=null;applyMouseHands();}});
 window.addEventListener('pagehide',()=>{audio.silence();tracker?.stop();});
 render();

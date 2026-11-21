@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {parseNpy} from '../src/npy.js';
 import {validateCube,rebinCube,getSpectrum,sumMap,binFrequency,chooseAmplitudes,createDemoCube} from '../src/cube.js';
-import {extractHands} from '../src/hands.js';
+import {extractHands,drawHandSkeleton} from '../src/hands.js';
 
 function fakeNpy(shape, values, descr='<f4') {
   const shapeStr=`(${shape.join(', ')}${shape.length===1?',':''})`;
@@ -69,13 +69,43 @@ test('poly mode bounds voice count and keeps gain <= volume',()=>{
   assert.equal(a.filter(n=>n>0).length,2);
   assert.ok(Math.abs(a.reduce((x,y)=>x+y,0)-.25)<1e-6);
 });
-test('unmirrored frames: swapped MediaPipe labels recover subject handedness; x mirrored once',()=>{
-  // On unmirrored input a hand at image-left (x=.1) is the subject's RIGHT hand, but MediaPipe labels it 'Left'.
-  const r=extractHands({landmarks:[[...Array(8).fill({}),{x:.1,y:.25}],[...Array(8).fill({}),{x:.8,y:.75}]],handednesses:[[{categoryName:'Left'}],[{categoryName:'Right'}]]});
+test('MediaPipe labels map 1:1 to app right/left (live webcam verified); x mirrored once',()=>{
+  // Live user test 2026-11-21 showed the M2 photo-based swap produced inverted
+  // right/left, so labels now pass through unchanged. x is still mirrored once
+  // (raw frame is unmirrored, the on-screen preview and map are mirrored).
+  const mk=(x,y)=>[...Array(8).fill({}),{x,y}];
+  const r=extractHands({landmarks:[mk(.1,.25),mk(.8,.75)],handednesses:[[{categoryName:'Right'}],[{categoryName:'Left'}]]});
   assert.deepEqual(r.right,{x:.9,y:.25});
   assert.ok(Math.abs(r.left.x-.2)<1e-9 && r.left.y===.75);
-  const none=extractHands({landmarks:[[...Array(8).fill({}),{x:1.2,y:.5}]],handednesses:[[{categoryName:'Left'}]]});
+  assert.equal(r.skeleton.right.length,9);
+  assert.equal(r.skeleton.left.length,9);
+  const none=extractHands({landmarks:[mk(1.2,.5)],handednesses:[[{categoryName:'Right'}]]});
   assert.equal(none.right,null);
+  assert.equal(none.skeleton.right,null);
+  assert.equal(extractHands(null).right,null);
+});
+test('drawHandSkeleton strokes 21 bones, 21 joints and a larger index tip',()=>{
+  const makeCtx=()=>{
+    const ops=[];
+    return {ops,ctx:{save(){},restore(){},beginPath(){},stroke(){},fill(){},
+      moveTo(x,y){ops.push(['m',x]);},lineTo(x,y){ops.push(['l',x]);},arc(x){ops.push(['a',x]);},
+      set lineWidth(v){},set strokeStyle(v){},set fillStyle(v){},set globalAlpha(v){}}};
+  };
+  const lm=Array.from({length:21},(_,i)=>({x:.04*i,y:.04*i}));
+  const t1=makeCtx();
+  drawHandSkeleton(t1.ctx,lm,{width:100,height:100},'#fff');
+  assert.equal(t1.ops.filter(o=>o[0]==='m').length,21);
+  assert.equal(t1.ops.filter(o=>o[0]==='l').length,21);
+  assert.equal(t1.ops.filter(o=>o[0]==='a').length,22);
+  // mirror=true flips x: landmark 0 at x=0 lands at size.width
+  assert.equal(t1.ops.find(o=>o[0]==='m')[1],100);
+  const t2=makeCtx();
+  drawHandSkeleton(t2.ctx,lm,{width:100,height:100},'#fff',false);
+  assert.equal(t2.ops.find(o=>o[0]==='m')[1],0);
+  const t3=makeCtx();
+  drawHandSkeleton(t3.ctx,null,{width:100,height:100},'#fff');
+  drawHandSkeleton(t3.ctx,lm.slice(0,5),{width:100,height:100},'#fff');
+  assert.equal(t3.ops.length,0);
 });
 test('demo is actual shaped XRF cube',()=>{
   const cube=createDemoCube();assert.equal(cube.data.length,cube.width*cube.height*cube.channels);
