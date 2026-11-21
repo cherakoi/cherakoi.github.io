@@ -19,7 +19,7 @@ Let `C_in` be original spectral depth and `C_out=min(C_in,512)`.
 
 ## 3. Image mapping
 
-Displayed intensity is `S[y,x]=sum_k J[y,x,k]`; grayscale-blue brightness uses `log1p(S)/log1p(max(S))` for visualization only. The pointer samples **J, not the display RGB**. The image is letterboxed with preserved aspect ratio; positions outside the displayed cube area are silent. The webcam receives **unmirrored frames** for MediaPipe handedness; returned x is mirrored *once* for user-facing map coordinates. This avoids the legacy code's canvas-pixel bug.
+Displayed intensity is `S[y,x]=sum_k J[y,x,k]`; grayscale-blue brightness uses `log1p(S)/log1p(max(S))` for visualization only. The pointer samples **J, not the display RGB**. The image is letterboxed with preserved aspect ratio; positions outside the displayed cube area are silent. The webcam receives **unmirrored frames** for MediaPipe. MediaPipe's handedness labels assume a *mirrored* (selfie) input, so on unmirrored frames they are swapped relative to the subject; `extractHands` swaps them so the subject's right hand controls the pointer and the left hand selects the bin. The returned x is mirrored *once* for user-facing map coordinates. Verified 2026-11-21 on a frontal photo with unambiguous hand chirality (anatomy-identified subject right hand is labeled 'Left' by the model). This avoids the legacy code's canvas-pixel bug.
 
 ## 4. From energy/bin to audio frequency
 

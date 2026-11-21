@@ -1,6 +1,6 @@
 # CHerakoi — operational plan
 
-**Scope:** explicitly requested bootstrap + functional draft and agent-ready handoff, 2026-11-21. Current status: *M1 draft completed at code/test level; M2 real browser integration pending*. User controls final scientific/audio choices. Sources: see `legacy_audit.md`.
+**Scope:** explicitly requested bootstrap + functional draft and agent-ready handoff, 2026-11-21. Current status: *M1 draft completed; M2 executed in headless Chromium 145 (2026-11-21, see `timeline.md`): NPZ/H5/rebin/audio-DSP/network verified, live camera and audible output still pending*. User controls final scientific/audio choices. Sources: see `legacy_audit.md`.
 
 ## 1. Problem / non-goals
 
@@ -30,20 +30,20 @@ Nginx → serves only index.html + src/ (no XRF request/POST routes)
 
 | ID | Requirement | Minimum evidence | Status |
 |---|---|---|---|
-| F1 | NPZ key `img`, (H,W,C) + optional energy | Numeric parser tests + upload of real fixture | Partial: parser only |
-| F2 | HDF5 `/img` + optional `/energy` | Browser upload of synthetic H5 then real H5 | Not tested |
-| F3 | C=512,1024 and arbitrary C with conserved count sums | tests with C=2,5,1024; compare with xrfraw | Partial: JS tests pass |
-| F4 | Right fingertip selects XRF pixel, outside/missing silences | Mouse mode + two-handed camera smoke test with mirror & crop | Not verified in real browser |
-| F5 | Left absent mix / left present isolated bin, bottom→low, top→high | numeric policy tests + live audio | Partial: policy test only |
-| F6 | Accessible, fluid DHLab dark UI | screenshot + manual inspection desktop/mobile | Not yet verified |
-| F7 | Browser-only local data; Nginx static serving | devtools network/POST inspection; Docker | Static architecture implemented; deploy untested |
-| F8 | No clipping/dropouts under normal spectral load | Worklet audio tests, peak/RSS, latency, CPU | Not tested |
+| F1 | NPZ key `img`, (H,W,C) + optional energy | Numeric parser tests + upload of real fixture | Browser-verified: fixture NPZ upload, map, counts, 0.1/8.1 keV calibration |
+| F2 | HDF5 `/img` + optional `/energy` | Browser upload of synthetic H5 then real H5 | Browser-verified (synthetic H5, identical render to NPZ); real H5 pending M3 |
+| F3 | C=512,1024 and arbitrary C with conserved count sums | tests with C=2,5,1024; compare with xrfraw | Verified: unit tests + 1024→512 in browser (label `3×3×1024 → 512`); xrfraw cross-check pending |
+| F4 | Right fingertip selects XRF pixel, outside/missing silences | Mouse mode + two-handed camera smoke test with mirror & crop | Partial: mouse selection, letterbox and off-map silence browser-verified; live camera pending |
+| F5 | Left absent mix / left present isolated bin, bottom→low, top→high | numeric policy tests + live audio | Partial: poly (multi-bin), mono (exactly 1 bin, bottom→low/top→high) and silent paths verified via worklet amplitude spy; audible output pending |
+| F6 | Accessible, fluid DHLab dark UI | screenshot + manual inspection desktop/mobile | Partial: desktop + 390px viewport, no horizontal overflow, topbar #4196B4; manual aesthetic review pending |
+| F7 | Browser-only local data; Nginx static serving | devtools network/POST inspection; Docker | Partial: network audit shows zero XRF data leaving the page (only pinned CDN + GCS model); Docker untested |
+| F8 | No clipping/dropouts under normal spectral load | Worklet audio tests, peak/RSS, latency, CPU | Partial: worklet DSP verified headless (RMS 0.68, tanh peak 0.986, exact zero when silent); CPU/latency under load unmeasured |
 
 ## 4. Milestones
 
 - **M0 — inventory & decisions.** Inspect four supplied zips, two XRF repos; outline KEEP/REMOVE/ADD, choose no-React static strategy. **Done (source-based review).**
 - **M1 — runnable scaffold & pure algorithms.** Static layout, readers, rebin, synthetic fixture, two-hand extraction, audio DSP, unit tests, docs. **Draft implemented; numeric tests pass; runtime paths unverified.**
-- **M2 — browser end-to-end.** On desktop Chrome/Firefox (real server/HTTPS): synthetic NPZ+H5, camera, MediaPipe, wasm fetch, AudioWorklet and interactions; observe logs; fix actual runtime issues. **Next.**
+- **M2 — browser end-to-end.** On desktop Chrome/Firefox (real server/HTTPS): synthetic NPZ+H5, camera, MediaPipe, wasm fetch, AudioWorklet and interactions; observe logs; fix actual runtime issues. **Executed in headless Chromium 145 on 2026-11-21 (see `timeline.md`); live camera + audible audio remain.**
 - **M3 — scientifically correct real-data acceptance.** Test the user's NPZ and H5; shape, dtype, calibration, mask handling, consistent counts against xrfraw reference, non-divisible C policy. **Next after M2.**
 - **M4 — performance, deployment hardening & release.** Large H5 chunk/worker strategy if needed, benchmark 24/32/64/512 voices, vendored offline assets optional, test Nginx behind TLS, license and attribution. **Deferred.**
 
@@ -61,7 +61,7 @@ Nginx → serves only index.html + src/ (no XRF request/POST routes)
 | Calibrated energy | use optional `/energy`, ignore calibration attrs until coded | cross-check against converter output, calibrations; handle absent energy |
 | Mask/no acquired pixels | all zeros displayed as dark pixels | need `mask` reader/indicator, important for scientific interpretation |
 | Browser RAM & blocking | synchronous NPZ decompression, H5 WASM main thread, 400-MiB NPZ cap | measure real data; chunk/worker on evidence |
-| Left/right handedness | MediaPipe returns subject's labels on unmirrored input | live camera test including front-facing webcam |
+| Left/right handedness | MediaPipe labels assume mirrored input; app swaps them (`extractHands`) | Verified on frontal photo with unambiguous chirality; live camera test including front-facing webcam still open |
 | Hosting | CDN model and library assets; HTTPS via external reverse proxy | decide vendoring / offline requirements |
 | Licenses | no license assigned in ZIP, no legacy assets copied | user and collaborators' decision |
 
