@@ -55,18 +55,37 @@ export function sumMap(cube) {
   return total;
 }
 
+/** Per-pixel integral over [bin-halfWidth, bin+halfWidth] (clamped). For the
+ * grayscale-on-bin view: moving the selected bin changes the image. */
+export function windowMap(cube, bin, halfWidth) {
+  const {height, width, channels, data} = cube;
+  const lo=Math.max(0,bin-halfWidth), hi=Math.min(channels-1,bin+halfWidth);
+  const out=new Float64Array(height*width);
+  for(let p=0;p<out.length;p++){const base=p*channels;let s=0;for(let k=lo;k<=hi;k++)s+=data[base+k];out[p]=s;}
+  return out;
+}
+
 export function binFrequency(bin, channels, minHz, maxHz, energy=null) {
   let fraction = channels === 1 ? 0 : bin/(channels-1);
   if (energy && channels > 1 && energy[channels-1] !== energy[0]) fraction=(energy[bin]-energy[0])/(energy[channels-1]-energy[0]);
   return minHz*Math.pow(maxHz/minHz,Math.max(0,Math.min(1,fraction)));
 }
 
-export function chooseAmplitudes(counts, {threshold=2, maxVoices=32, selectedBin=null, volume=0.25}) {
+export function chooseAmplitudes(counts, {threshold=2, maxVoices=32, selectedBin=null, volume=0.25, peakWindow=null}) {
   const amplitudes=new Float32Array(counts.length);
   if (selectedBin !== null) {
-    const selected=counts[selectedBin] || 0;
-    const peak=Math.max(...counts); // counts.length is typically <=512
-    if (selected > threshold && peak > threshold) amplitudes[selectedBin]=volume*Math.sqrt((selected-threshold)/(peak-threshold));
+    // Mono: the user picked the bin, so it sounds whenever the pixel has any
+    // count there (no threshold gate: sparse real data is mostly 0/1 counts and
+    // a threshold made the hand feel permanently mute). Gain floor 0.12 keeps a
+    // weak selection audible; the sqrt ratio keeps peak shape in the volume.
+    let voice=selectedBin;
+    if (peakWindow) { // optional: sonify the local max within +/-peakWindow channels
+      const lo=Math.max(0,selectedBin-peakWindow), hi=Math.min(counts.length-1,selectedBin+peakWindow);
+      for(let k=lo;k<=hi;k++) if(counts[k]>counts[voice]) voice=k;
+    }
+    const selected=counts[voice] || 0;
+    const peak=Math.max(...counts);
+    if (selected > 0 && peak > 0) amplitudes[voice]=volume*Math.max(0.12,Math.sqrt(selected/peak));
     return amplitudes;
   }
   const candidates=[];

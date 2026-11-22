@@ -26,7 +26,8 @@ Camera access works on **localhost** or **HTTPS** (use TLS at your reverse proxy
 2. Click **Attiva audio** (browser autoplay policy). Click **Avvia camera** and grant camera permission.
 3. Move the **right index fingertip** over the XRF map: a pixel is selected; when the right index is absent or outside the map, sound is silent.
 4. Keep the **left index fingertip out of the camera view** for a *spectral mixture*. Put it back into view to isolate one energy bin. Left index near **bottom** selects the low channel/frequency, near **top** the high one.
-5. Without a camera, enable **Modalità mouse** and move the mouse over the map. Hold `Shift` while moving to emulate the left index.
+5. Without a camera, enable **Modalità mouse** and move the mouse over the map. Hold `Shift` while moving to emulate the left index: the wheel moves it in quantized steps (2 bins per 100 px notch, proportional under momentum) and ↑/↓ step exactly 1 bin; releasing `Shift` returns to the mixture.
+6. Optional controls under the map: **⟲/⟳ 90°** and **⇋/⇅** rotate/flip the picture only (the energy axis stays vertical); **Cal m / Cal q** set a linear calibration `E = q + m·bin` (keV) shown for the selected bin; **Bin fisso** pins one energy bin; **Fino al picco** snaps the selection to the local maximum within ±N channels; **Mappa su bin** renders the per-pixel integral over the selected bin ±N channels.
 
 For reproducible data-format checking, a tiny NPZ fixture is provided at `tests/fixtures/synthetic_xrf.npz` (not an experimental dataset). Put private data in `data_example/` (gitignored); **local files are not read automatically** by the browser, so select them through the upload control.
 

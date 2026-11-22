@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {parseNpy} from '../src/npy.js';
-import {validateCube,rebinCube,getSpectrum,sumMap,binFrequency,chooseAmplitudes,createDemoCube} from '../src/cube.js';
+import {validateCube,rebinCube,getSpectrum,sumMap,windowMap,binFrequency,chooseAmplitudes,createDemoCube} from '../src/cube.js';
 import {extractHands,drawHandSkeleton} from '../src/hands.js';
 
 function fakeNpy(shape, values, descr='<f4') {
@@ -58,11 +58,29 @@ test('frequency mapping increases with channel and respects calibrated energies'
   assert.equal(binFrequency(2,3,110,1760),1760);
   assert.ok(Math.abs(binFrequency(1,3,110,1760,Float64Array.of(0,1,4))-220)<1e-9);
 });
-test('right offscreen silence handled by UI; mono selects exact bin; threshold mutes',()=>{
+test('mono selects exact bin without threshold gate: sparse counts still sound (gain floor 0.12)',()=>{
   const counts=Float32Array.of(2,100,30,60);
-  const mono=chooseAmplitudes(counts,{threshold:3,maxVoices:4,selectedBin:2,volume:.5});
-  assert.ok(mono[2]>.0);assert.equal(mono[1],0);
-  assert.ok(chooseAmplitudes(counts,{threshold:31,selectedBin:2,volume:.5}).every(n=>n===0));
+  const mono=chooseAmplitudes(counts,{threshold:31,maxVoices:4,selectedBin:2,volume:.5});
+  assert.ok(mono[2]>.0);assert.equal(mono[1],0);assert.equal(mono[3],0);
+  assert.ok(Math.abs(mono[2]-.5*Math.sqrt(30/100))<1e-6);
+  // a weak selection below the old threshold stays audible; an empty bin stays silent
+  const weak=chooseAmplitudes(Float32Array.of(1,100,0,0),{threshold:2,selectedBin:0,volume:.5});
+  assert.ok(Math.abs(weak[0]-.5*0.12)<1e-6);
+  assert.ok(chooseAmplitudes(Float32Array.of(0,0,0,0),{selectedBin:1,volume:.5}).every(n=>n===0));
+});
+test('peak mode sonifies the local max within +/-N channels, not the selected shoulder',()=>{
+  const counts=Float32Array.of(1,5,40,9,2,100);
+  const a=chooseAmplitudes(counts,{selectedBin:1,peakWindow:2,volume:.5});
+  assert.ok(a[2]>.0);assert.equal(a[1],0);assert.equal(a[5],0); // snaps to bin 2, local max in [0..3]
+  const b=chooseAmplitudes(counts,{selectedBin:1,peakWindow:0,volume:.5});
+  assert.ok(b[1]>.0);assert.equal(b[2],0);
+});
+test('windowMap integrates over [bin-N, bin+N] and clamps at the edges',()=>{
+  const cube=validateCube([1,2,5],Float64Array.of(1,2,3,4,5,10,20,30,40,50));
+  assert.deepEqual(Array.from(windowMap(cube,2,1)),[9,90]);
+  assert.deepEqual(Array.from(windowMap(cube,0,1)),[3,30]);
+  assert.deepEqual(Array.from(windowMap(cube,4,1)),[9,90]);
+  assert.deepEqual(Array.from(windowMap(cube,2,0)),[3,30]);
 });
 test('poly mode bounds voice count and keeps gain <= volume',()=>{
   const a=chooseAmplitudes(Float32Array.of(10,20,40,30),{threshold:5,maxVoices:2,volume:.25});

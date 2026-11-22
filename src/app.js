@@ -1,4 +1,4 @@
-import {createDemoCube,getSpectrum,sumMap,chooseAmplitudes} from './cube.js';
+import {createDemoCube,getSpectrum,sumMap,windowMap,chooseAmplitudes} from './cube.js';
 import {readXrfFile} from './io.js';
 import {SpectralAudio} from './audio.js';
 import {HandTracker,drawHandSkeleton} from './hands.js';
@@ -9,9 +9,12 @@ const spectrum=el('spectrum'),specCtx=spectrum.getContext('2d');
 const audio=new SpectralAudio();
 let cube=null,heatmap=null,fit=null,tracker=null,hands={left:null,right:null};
 let currentPixel=null,audioReady=false;
+let selectedBin=null;               // shared by render/renderMap/spectrum (mono line)
+let mapSumsTotal=null,baseEnergy=null;
+let xform={rot:0,fh:false,fv:false}; // rot: 90° CW steps; fh/fv: mirror the view
 
 function message(text,isError=false) {el('message').textContent=text;el('message').classList.toggle('error',isError);}
-function options() {return {threshold:+el('threshold').value,maxVoices:+el('voices').value,volume:+el('volume').value/100};}
+function options() {return {threshold:+el('threshold').value,maxVoices:+el('voices').value,volume:+el('volume').value/100,peakWindow:el('peak-mode').checked?Math.max(0,Math.floor(+el('peak-window').value||0)):null};}
 function frequencyRange(){return [+el('freq-min').value,+el('freq-max').value];}
 function showMetadata(name) {
   const {width,height,channels,sourceChannels,energy}=cube;
@@ -40,29 +43,55 @@ const COLORMAPS={
   inferno:lutFromStops([[0,0,4],[66,10,104],[147,38,103],[221,81,58],[252,253,191]])
 };
 let mapSums=null,mapScale=1;
+function displaySize(){return cube?(xform.rot%2?{w:cube.height,h:cube.width}:{w:cube.width,h:cube.height}):null;}
+// Display pixel (i,j) -> cube (row y, col x). Flips act on what the user sees
+// (so they commute with rotation exactly like flipping the picture).
+function dispToCube(i,j) {
+  const {width:w,height:h}=cube;
+  const Hd=xform.rot%2?w:h,Wd=xform.rot%2?h:w;
+  if(xform.fv)i=Hd-1-i;
+  if(xform.fh)j=Wd-1-j;
+  switch(xform.rot){
+    case 0:return {x:j,y:i};
+    case 1:return {x:i,y:h-1-j};
+    case 2:return {x:w-1-j,y:h-1-i};
+    default:return {x:w-1-i,y:j};
+  }
+}
+function setMapSums(sums) {
+  mapSums=sums;
+  let max=0;for(const n of sums)max=Math.max(max,n);
+  mapScale=Math.log1p(max)||1;
+  buildHeatmap(el('colormap').value);
+}
 function buildHeatmap(name){
   if(!mapSums)return;
   const lut=COLORMAPS[name]||COLORMAPS.terreic;
-  const pix=heatmap.getContext('2d').createImageData(heatmap.width,heatmap.height);
-  for(let i=0;i<mapSums.length;i++){
-    const u=Math.min(255,Math.round(255*Math.pow(Math.log1p(mapSums[i])/mapScale,1.2)));
-    pix.data[i*4]=lut[u*3];pix.data[i*4+1]=lut[u*3+1];pix.data[i*4+2]=lut[u*3+2];pix.data[i*4+3]=255;
+  const {w:dw,h:dh}=displaySize();
+  const pix=heatmap.getContext('2d').createImageData(dw,dh);
+  for(let i=0;i<dh;i++)for(let j=0;j<dw;j++){
+    const {x:c,y:r}=dispToCube(i,j);
+    const u=Math.min(255,Math.round(255*Math.pow(Math.log1p(mapSums[r*cube.width+c])/mapScale,1.2)));
+    const p=(i*dw+j)*4;
+    pix.data[p]=lut[u*3];pix.data[p+1]=lut[u*3+1];pix.data[p+2]=lut[u*3+2];pix.data[p+3]=255;
   }
   heatmap.getContext('2d').putImageData(pix,0,0);
 }
 function loadCube(nextCube,name){
   audio.silence();cube=nextCube;hands={left:null,right:null};currentPixel=null;
-  heatmap=document.createElement('canvas');heatmap.width=cube.width;heatmap.height=cube.height;
-  const sums=sumMap(cube);
-  mapSums=sums;
+  xform={rot:0,fh:false,fv:false};
+  baseEnergy=cube.energy;
+  el('cal-m').value='';el('cal-q').value='';
+  el('fixed-bin-value').max=cube.channels-1;
+  const {w,h}=displaySize();
+  heatmap=document.createElement('canvas');heatmap.width=w;heatmap.height=h;
+  mapSumsTotal=sumMap(cube);
+  setMapSums(mapSumsTotal);
   let maxCount=0;for(const n of cube.data)maxCount=Math.max(maxCount,n);
   const thresholdMax=Math.max(100,Math.ceil(maxCount));
   el('threshold').max=thresholdMax;el('threshold').step=Math.max(1,Math.ceil(thresholdMax/500));
   if(+el('threshold').value>thresholdMax)el('threshold').value=thresholdMax;
   el('threshold-value').textContent=el('threshold').value;
-  let max=0;for(const n of sums)max=Math.max(max,n);
-  mapScale=Math.log1p(max)||1;
-  buildHeatmap(el('colormap').value);
   showMetadata(name);
   el('camera-start').disabled=false;el('audio-start').disabled=false;
   if(audioReady)audio.configure(cube,...frequencyRange());
@@ -73,15 +102,19 @@ function loadCube(nextCube,name){
 function imageFit() {
   if(!cube)return null;
   // Preserve square pixels and letterboxing: never sample from the canvas RGB.
-  const k=Math.min((map.width-56)/cube.width,(map.height-40)/cube.height);
-  const w=k*cube.width,h=k*cube.height;
+  const {w:dw,h:dh}=displaySize();
+  const k=Math.min((map.width-56)/dw,(map.height-40)/dh);
+  const w=k*dw,h=k*dh;
   return {x:(map.width-w)/2,y:(map.height-h)/2,w,h};
 }
 function pixelAt(displayPoint) {
   if(!displayPoint||!fit||!cube)return null;
   const px=displayPoint.x*map.width,py=displayPoint.y*map.height;
   if(px<fit.x||px>=fit.x+fit.w||py<fit.y||py>=fit.y+fit.h)return null;
-  return {x:Math.floor((px-fit.x)/fit.w*cube.width),y:Math.floor((py-fit.y)/fit.h*cube.height)};
+  const {w:dw,h:dh}=displaySize();
+  const i=Math.min(dh-1,Math.floor((py-fit.y)/fit.h*dh));
+  const j=Math.min(dw-1,Math.floor((px-fit.x)/fit.w*dw));
+  return dispToCube(i,j);
 }
 function leftBin(point){
   if(!point)return null;
@@ -112,9 +145,10 @@ function renderMap() {
   ctx.imageSmoothingEnabled=false;
   ctx.drawImage(heatmap,fit.x,fit.y,fit.w,fit.h);
   ctx.strokeStyle='#7bb1c4';ctx.lineWidth=1;ctx.strokeRect(fit.x,fit.y,fit.w,fit.h);
-  if(hands.left){
-    const y=hands.left.y*map.height;
-    ctx.strokeStyle='#e4aa76a0';ctx.setLineDash([5,7]);ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(map.width,y);ctx.stroke();ctx.setLineDash([]);
+  if(selectedBin!==null){
+    const t=cube.channels>1?selectedBin/(cube.channels-1):0;
+    const y=fit.y+(1-t)*fit.h;
+    ctx.strokeStyle='#e4aa76a0';ctx.setLineDash([5,7]);ctx.beginPath();ctx.moveTo(fit.x,y);ctx.lineTo(fit.x+fit.w,y);ctx.stroke();ctx.setLineDash([]);
   }
   if(hands.skeleton){
     drawHandSkeleton(ctx,hands.skeleton.right,{width:map.width,height:map.height},'#71d7ed');
@@ -147,12 +181,28 @@ function renderSpectrum(counts,selectedBin) {
   const last=cube.energy?`${cube.energy.at(-1).toFixed(2)} keV`:`ADC ${cube.channels-1}`;
   specCtx.textAlign='right';specCtx.fillText(last,w-18,h-10);specCtx.textAlign='left';
 }
+function clampBin() {
+  const v=+el('fixed-bin-value').value;
+  return Number.isFinite(v)?Math.max(0,Math.min(cube.channels-1,Math.floor(v))):0;
+}
+let lastWindowKey='';
+function updateMapSums() {
+  // Grayscale-on-bin: with the left hand (or fixed bin) active and the option
+  // on, the map shows the per-pixel integral over +/-N channels of the bin.
+  const on=el('map-window').checked&&selectedBin!==null;
+  const key=on?`w${selectedBin}`:'off';
+  if(key===lastWindowKey)return;
+  lastWindowKey=key;
+  setMapSums(on?windowMap(cube,selectedBin,Math.max(0,Math.floor(+el('map-window-n').value||0))):mapSumsTotal);
+}
 function render() {
-  renderMap();
-  if(!cube){renderSpectrum(null,null);return;}
+  if(!cube){renderMap();renderSpectrum(null,null);return;}
   currentPixel=pixelAt(hands.right);
   const counts=currentPixel?getSpectrum(cube,currentPixel.x,currentPixel.y):null;
-  const selectedBin=counts?leftBin(hands.left):null;
+  const raw=counts?leftBin(hands.left):null;
+  selectedBin=counts?(el('fixed-bin').checked?clampBin():raw):null;
+  updateMapSums();
+  renderMap();
   renderSpectrum(counts,selectedBin);
   const mode=!counts?'silenzio':selectedBin===null?'polifonia':'singolo bin';
   if(audioReady)audio.play(counts?chooseAmplitudes(counts,{...options(),selectedBin}):new Float32Array(cube.channels));
@@ -219,16 +269,16 @@ for(const id of ['freq-min','freq-max'])el(id).addEventListener('change',()=>{
 el('colormap').addEventListener('change',()=>{buildHeatmap(el('colormap').value);render();});
 // Mouse test: cursor = right index; Shift = left hand at cursor; Shift+wheel
 // moves the virtual left hand vertically (mono); releasing Shift returns to polyphony.
-let mouseRight=null,shiftDown=false,wheelLeftY=null;
+let mouseRight=null,shiftDown=false,wheelLeftY=null,wheelRem=0;
 function applyMouseHands(){
   const left=(shiftDown&&mouseRight)?{x:mouseRight.x,y:wheelLeftY===null?mouseRight.y:wheelLeftY}:null;
   updateHands({right:mouseRight,left});
 }
 el('mouse-mode').addEventListener('change',()=>{
   if(el('mouse-mode').checked&&tracker){tracker.stop();tracker=null;el('camera-stop').disabled=true;el('camera-start').disabled=false;}
-  mouseRight=null;shiftDown=false;wheelLeftY=null;
+  mouseRight=null;shiftDown=false;wheelLeftY=null;wheelRem=0;
   updateHands({right:null,left:null});
-  if(el('mouse-mode').checked)message('Mouse test: cursore = mano destra; Shift o frecce ↑/↓ = mano sinistra (rotella o frecce = su/giù); Shift rilasciato = polifonia.');
+  if(el('mouse-mode').checked)message('Mouse test: cursore = mano destra; Shift o frecce ↑/↓ = mano sinistra (rotella = 2 bin per tacca, ↑/↓ = 1 bin); Shift rilasciato = polifonia.');
 });
 map.addEventListener('pointermove',event=>{
   if(!el('mouse-mode').checked||!cube)return;
@@ -237,15 +287,20 @@ map.addEventListener('pointermove',event=>{
   if(event.shiftKey!==shiftDown)shiftDown=event.shiftKey;
   applyMouseHands();
 });
-map.addEventListener('pointerleave',()=>{if(el('mouse-mode').checked){mouseRight=null;applyMouseHands();}});
+map.addEventListener('pointerleave',()=>{if(el('mouse-mode').checked){mouseRight=null;wheelRem=0;applyMouseHands();}});
 map.addEventListener('wheel',event=>{
   if(!el('mouse-mode').checked||!shiftDown||!mouseRight)return;
   event.preventDefault();
   const dy=event.deltaY*(event.deltaMode===1?33:event.deltaMode===2?map.height:1);
-  // step in bin space (not canvas): 1 wheel notch (~100px) = 10 bins even when
-  // the data image is letterboxed in the taller canvas.
+  // Wheel steps are quantized in ~100px notches (1 notch = 2 bins). Trackpad
+  // momentum bursts (thousands of px at once) and deltaMode quirks stay
+  // proportional instead of making the hand jump; arrows give 1-bin steps.
+  wheelRem+=dy;
+  const notches=Math.trunc(wheelRem/100);
+  if(!notches)return;
+  wheelRem-=notches*100;
   const per=fit?fit.h/(cube.channels*map.height):1/(cube.channels*map.height);
-  wheelLeftY=Math.max(0,Math.min(1,(wheelLeftY===null?mouseRight.y:wheelLeftY)-dy*0.1*per));
+  wheelLeftY=Math.max(0,Math.min(1,(wheelLeftY===null?mouseRight.y:wheelLeftY)-notches*2*per));
   applyMouseHands();
 },{passive:false});
 window.addEventListener('keydown',event=>{
@@ -258,7 +313,34 @@ window.addEventListener('keydown',event=>{
   applyMouseHands();
 });
 window.addEventListener('keydown',event=>{if(event.key==='Shift'&&!shiftDown){shiftDown=true;if(el('mouse-mode').checked)applyMouseHands();}});
-window.addEventListener('keyup',event=>{if(event.key==='Shift'){shiftDown=false;wheelLeftY=null;if(el('mouse-mode').checked)applyMouseHands();}});
-window.addEventListener('blur',()=>{if(el('mouse-mode').checked){shiftDown=false;mouseRight=null;applyMouseHands();}});
+window.addEventListener('keyup',event=>{if(event.key==='Shift'){shiftDown=false;wheelLeftY=null;wheelRem=0;if(el('mouse-mode').checked)applyMouseHands();}});
+window.addEventListener('blur',()=>{if(el('mouse-mode').checked){shiftDown=false;mouseRight=null;wheelRem=0;applyMouseHands();}});
 window.addEventListener('pagehide',()=>{audio.silence();tracker?.stop();});
+// View transforms (rotate/flip the picture; data coordinates stay untouched).
+function applyXform(){
+  if(!cube)return;
+  const {w,h}=displaySize();
+  heatmap.width=w;heatmap.height=h;
+  buildHeatmap(el('colormap').value);
+  render();
+}
+el('xform-ccw').addEventListener('click',()=>{xform.rot=(xform.rot+3)%4;applyXform();});
+el('xform-cw').addEventListener('click',()=>{xform.rot=(xform.rot+1)%4;applyXform();});
+el('xform-fh').addEventListener('click',()=>{xform.fh=!xform.fh;applyXform();});
+el('xform-fv').addEventListener('click',()=>{xform.fv=!xform.fv;applyXform();});
+// m/q energy calibration for the displayed bins: E[bin] = q + m·bin (keV).
+function applyCalibration(){
+  if(!cube)return;
+  const m=+el('cal-m').value,q=+el('cal-q').value;
+  if(Number.isFinite(m)&&Number.isFinite(q)&&m>0){
+    const e=new Float64Array(cube.channels);
+    for(let k=0;k<cube.channels;k++)e[k]=q+m*k;
+    cube.energy=e;
+  }else cube.energy=baseEnergy;
+  showMetadata(el('file-name').textContent);
+  if(audioReady)audio.configure(cube,...frequencyRange());
+  render();
+}
+for(const id of ['cal-m','cal-q'])el(id).addEventListener('change',applyCalibration);
+for(const id of ['peak-mode','peak-window','map-window','map-window-n','fixed-bin','fixed-bin-value'])el(id).addEventListener('input',()=>render());
 render();

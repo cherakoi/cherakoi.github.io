@@ -1,6 +1,21 @@
 # CHerakoi — to do
 
-## Now (M3.2: axis + mouse fine control — user test feedback 2026-11-22)
+## Done (M3.3: wheel quantization, mono muting fix, 5 extra features — user test round 3, 2026-11-22)
+
+- [x] Wheel quantization: 100 px = 1 notch = 2 bins (was 10 bins/notch, ~139 bins per 0.5 s in the user's video); `wheelRem` accumulator keeps trackpad momentum proportional; ↑/↓ = exactly 1 bin. — Verified headless: 100 px→+2, 1000 px→+20, demo cube 63→65.
+- [x] Mono muting fix: the selected bin is no longer gated by count > threshold — sparse 0–1 count data is silent by gate, not by data. `chooseAmplitudes`: mono = volume · max(0.12, sqrt(selected/peak)) when selected > 0 && peak > 0; gain floor 0.12 keeps weak bins audible, empty bins stay silent. — Unit-tested (weak bin at floor, empty bin silent, exact values asserted).
+- [x] Extra feature 1 — view transforms: ⟲/⟳ 90° and ⇋/⇅ flip the **picture only** (cube data untouched); `dispToCube` applies flips then rotation; the energy axis (left hand, wheel, arrows) stays screen-vertical by design (UI hint added). — E2E: identity/CW/FH/FV all map the bright demo spot (48,30)→(48,30) with exact coordinate readout; selection line at the correct y in identity and after CW.
+- [x] Extra feature 2 — energy calibration inputs `Cal m` / `Cal q`: display shows E = q + m·bin (keV) for the selected bin; empty → ADC label. — E2E: m=0.01, q=0.1 → "E = 0.1 + 0.01·bin". Note: this is the UI side of decision option (B) for the uncalibrated C=500 cubes — the decision itself stays with the user.
+- [x] Extra feature 3 — `Bin fisso` (fixed bin): checkbox + value override the left hand with a static bin, clamped to [0, C−1]. — E2E: chip "Bin 42 · 4.5 conteggi".
+- [x] Extra feature 4 — `Fino al picco` (peak window): optional snap of the selection to the local maximum within ±N channels (N configurable, 0 = off). — Unit-tested (snap to local max; N=0 leaves the bin).
+- [x] Extra feature 5 — `Mappa su bin` (map on bin): the map shows the per-pixel integral over ±N channels of the selected bin (`windowMap(cube, bin, N)` in `cube.js`, key-cached) instead of the total. — E2E: bin 0 (edge) map differs from the base at all 5 sample points.
+- [x] All changes pass `node --check`, `npm test` (14/14 incl. rewritten mono test + new peakWindow/windowMap tests) and headless E2E (zero console errors).
+
+## M3.3 leftovers (real hardware)
+
+- [ ] User's feel: wheel step size on the physical mouse, mono audibility of weak bins, transform/flip UX.
+
+## Done (M3.2: axis + mouse fine control — user test feedback 2026-11-22)
 
 - [x] Frequency axis aligned to the visible data image, not the full canvas. — `leftBin` now maps through the `fit` (letterbox) region with end clamping; verified headless on Mantegna (top→bin 499, center→250, bottom→0).
 - [x] Mouse fine control: ArrowUp/ArrowDown step the virtual left hand exactly 1 bin (engages it like Shift); wheel = 10 bins per notch, `deltaMode` normalized; Shift released → polyphony. — Verified headless (250→253→248, wheel +10/+10, keyup→"500 bins").
