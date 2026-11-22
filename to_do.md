@@ -1,5 +1,13 @@
 # CHerakoi — to do
 
+## Done (M3.3.1: cache-buster, xform centrata, tooltip — round 4 video, 2026-11-22)
+- [x] Diagnosi: video 3 mostra HTML nuovo + comportamento M3.3 morto → `app.js` vecchio in cache nel browser dell'utente; E2E real-click su codice corrente: tutto funzionante (Shift mono, wheel +2/100px, frecce +1, fixed-bin + linea arancione, xform)
+- [x] Cache-buster `?v=m3.3` su script module + stylesheet in `index.html` (convenzione: bump a ogni push che tocca `src/`)
+- [x] Riga pulsanti xform centrata (era allineata a sinistra)
+- [x] Tooltip hover su 10 controlli: xform ⟲/⟳/⇋/⇅, modalità mouse/rotella, cal m, cal q, picco ±N, mappa ±N, bin fisso
+- [x] Verifica: script/CSS `?v=m3.3` caricati, `justify-content:center` via computed style, 10/10 title, smoke test full OK, 0 errori console
+- [ ] Per l'utente: nuovo test — i 3 problemi del video 3 vanno a dissolvere con il cache-buster (se la rotella 2 bin/notch risultasse ancora "tanta", si abbassa: è un numero, una riga)
+
 ## Done (M3.3: wheel quantization, mono muting fix, 5 extra features — user test round 3, 2026-11-22)
 
 - [x] Wheel quantization: 100 px = 1 notch = 2 bins (was 10 bins/notch, ~139 bins per 0.5 s in the user's video); `wheelRem` accumulator keeps trackpad momentum proportional; ↑/↓ = exactly 1 bin. — Verified headless: 100 px→+2, 1000 px→+20, demo cube 63→65.
