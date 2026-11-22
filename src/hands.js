@@ -17,8 +17,10 @@ export class HandTracker {
     const {FilesetResolver,HandLandmarker}=await import(`${TASKS_BASE}/vision_bundle.mjs`);
     const vision=await FilesetResolver.forVisionTasks(`${TASKS_BASE}/wasm`);
     // GPU (WebGPU) delegate is several times faster than CPU where available; fall back to CPU.
+    // 0.4 (not the 0.5 default): user reports missed hands on the live webcam;
+    // sensitivity over strictness — a phantom hand is less harmful than a dead one.
     const options={
-      runningMode:'VIDEO',numHands:2,minHandDetectionConfidence:0.5,minTrackingConfidence:0.5
+      runningMode:'VIDEO',numHands:2,minHandDetectionConfidence:0.4,minTrackingConfidence:0.5
     };
     try {
       this.landmarker=await HandLandmarker.createFromOptions(vision,{baseOptions:{modelAssetPath:MODEL_URL,delegate:'GPU'},...options});

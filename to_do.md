@@ -1,6 +1,12 @@
 # CHerakoi — to do
 
-## Now (M3.1: UI iteration — user test feedback 2026-11-21)
+## Now (M3.2: axis + mouse fine control — user test feedback 2026-11-22)
+
+- [x] Frequency axis aligned to the visible data image, not the full canvas. — `leftBin` now maps through the `fit` (letterbox) region with end clamping; verified headless on Mantegna (top→bin 499, center→250, bottom→0).
+- [x] Mouse fine control: ArrowUp/ArrowDown step the virtual left hand exactly 1 bin (engages it like Shift); wheel = 10 bins per notch, `deltaMode` normalized; Shift released → polyphony. — Verified headless (250→253→248, wheel +10/+10, keyup→"500 bins").
+- [x] Lowered `minHandDetectionConfidence` 0.5→0.4 for reported missed hands. — **Live sensitivity needs the user's camera.**
+
+## Done (M3.1: UI iteration — user test feedback 2026-11-21)
 
 - [x] Taller camera preview + real-time hand skeletons (joints + index tip) on both map and camera preview. — camera-frame 142→240px, `object-fit:contain`, `#hands-overlay` canvas over the video; `extractHands` now returns `skeleton` landmark sets; `drawHandSkeleton` (21 bones + joints + larger index tip, x-mirrored) renders on map and camera overlay. **Overlay drawing on a live camera needs user hardware (no webcam headless).**
 - [x] Fix inverted right/left. — M2's photo-based label swap produced inverted L/R in the user's live test; removed it, MediaPipe labels map 1:1, x mirrored once for the mirrored UI. Tests updated.

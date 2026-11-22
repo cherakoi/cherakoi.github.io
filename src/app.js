@@ -83,7 +83,14 @@ function pixelAt(displayPoint) {
   if(px<fit.x||px>=fit.x+fit.w||py<fit.y||py>=fit.y+fit.h)return null;
   return {x:Math.floor((px-fit.x)/fit.w*cube.width),y:Math.floor((py-fit.y)/fit.h*cube.height)};
 }
-function leftBin(point){return point?Math.max(0,Math.min(cube.channels-1,Math.floor((1-point.y)*cube.channels))):null;}
+function leftBin(point){
+  if(!point)return null;
+  // Frequency axis spans the (letterboxed) data image, not the full canvas:
+  // top of image = highest bin, bottom = bin 0. Outside clamps to the ends.
+  const py=point.y*map.height;
+  const t=fit?Math.max(0,Math.min(1,(py-fit.y)/fit.h)):1-point.y;
+  return Math.max(0,Math.min(cube.channels-1,Math.floor((1-t)*cube.channels)));
+}
 
 function drawMarker(point,color,label) {
   if(!point)return;
@@ -221,7 +228,7 @@ el('mouse-mode').addEventListener('change',()=>{
   if(el('mouse-mode').checked&&tracker){tracker.stop();tracker=null;el('camera-stop').disabled=true;el('camera-start').disabled=false;}
   mouseRight=null;shiftDown=false;wheelLeftY=null;
   updateHands({right:null,left:null});
-  if(el('mouse-mode').checked)message('Mouse test: cursore sulla mappa; Shift = mano sinistra; Shift+rotella = sinistra su/giù; rilasciato Shift = polifonia.');
+  if(el('mouse-mode').checked)message('Mouse test: cursore = mano destra; Shift o frecce ↑/↓ = mano sinistra (rotella o frecce = su/giù); Shift rilasciato = polifonia.');
 });
 map.addEventListener('pointermove',event=>{
   if(!el('mouse-mode').checked||!cube)return;
@@ -234,9 +241,22 @@ map.addEventListener('pointerleave',()=>{if(el('mouse-mode').checked){mouseRight
 map.addEventListener('wheel',event=>{
   if(!el('mouse-mode').checked||!shiftDown||!mouseRight)return;
   event.preventDefault();
-  wheelLeftY=Math.max(0,Math.min(1,(wheelLeftY===null?mouseRight.y:wheelLeftY)-event.deltaY*0.0025));
+  const dy=event.deltaY*(event.deltaMode===1?33:event.deltaMode===2?map.height:1);
+  // step in bin space (not canvas): 1 wheel notch (~100px) = 10 bins even when
+  // the data image is letterboxed in the taller canvas.
+  const per=fit?fit.h/(cube.channels*map.height):1/(cube.channels*map.height);
+  wheelLeftY=Math.max(0,Math.min(1,(wheelLeftY===null?mouseRight.y:wheelLeftY)-dy*0.1*per));
   applyMouseHands();
 },{passive:false});
+window.addEventListener('keydown',event=>{
+  if(event.key!=='ArrowUp'&&event.key!=='ArrowDown')return;
+  if(!el('mouse-mode').checked||!cube||!mouseRight)return;
+  event.preventDefault();
+  shiftDown=true; // arrows engage the virtual left hand like Shift does
+  const per=fit?fit.h/(cube.channels*map.height):1/(cube.channels*map.height);
+  wheelLeftY=Math.max(0,Math.min(1,(wheelLeftY===null?mouseRight.y:wheelLeftY)+(event.key==='ArrowUp'?-per:per)));
+  applyMouseHands();
+});
 window.addEventListener('keydown',event=>{if(event.key==='Shift'&&!shiftDown){shiftDown=true;if(el('mouse-mode').checked)applyMouseHands();}});
 window.addEventListener('keyup',event=>{if(event.key==='Shift'){shiftDown=false;wheelLeftY=null;if(el('mouse-mode').checked)applyMouseHands();}});
 window.addEventListener('blur',()=>{if(el('mouse-mode').checked){shiftDown=false;mouseRight=null;applyMouseHands();}});
