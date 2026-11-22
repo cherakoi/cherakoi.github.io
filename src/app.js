@@ -187,9 +187,9 @@ function clampBin() {
 }
 let lastWindowKey='';
 function updateMapSums() {
-  // Grayscale-on-bin: with the left hand (or fixed bin) active and the option
-  // on, the map shows the per-pixel integral over +/-N channels of the bin.
-  const on=el('map-window').checked&&selectedBin!==null;
+  // Grayscale-on-bin: with Mappa di grigi or Bin fisso on and a bin selected,
+  // the map shows the per-pixel integral over +/-N channels of the bin.
+  const on=(el('map-window').checked||el('fixed-bin').checked)&&selectedBin!==null;
   const key=on?`w${selectedBin}`:'off';
   if(key===lastWindowKey)return;
   lastWindowKey=key;
@@ -342,5 +342,6 @@ function applyCalibration(){
   render();
 }
 for(const id of ['cal-m','cal-q'])el(id).addEventListener('change',applyCalibration);
-for(const id of ['peak-mode','peak-window','map-window','map-window-n','fixed-bin','fixed-bin-value'])el(id).addEventListener('input',()=>render());
+const exclusiveToggles=['peak-mode','map-window','fixed-bin'];
+for(const id of ['peak-mode','peak-window','map-window','map-window-n','fixed-bin','fixed-bin-value'])el(id).addEventListener('input',()=>{if(exclusiveToggles.includes(id)&&el(id).checked)for(const other of exclusiveToggles)if(other!==id)el(other).checked=false;render();});
 render();

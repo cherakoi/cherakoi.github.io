@@ -1,5 +1,15 @@
 # CHerakoi — to do
 
+## Done (M3.4: bin fisso → mappa del bin, esclusione reciproca, typo — user round 5, 2026-11-22)
+- [x] `updateMapSums`: la mappa di grigi su bin si attiva anche con **Bin fisso** (non solo Mappa di grigi) — stessa selezione `selectedBin`, stesso ±N da `map-window-n`
+- [x] Tre checkbox **mutuamente exclusive** (Suono solo il picco / Mappa di grigi / Bin fisso): check di uno → gli altri due off; deselect è libero (nessuno dei tre selezionato = OK). Implementato nel listener `input` esistente (3 righe)
+- [x] Typo: "Sono solo il picco" → "Suono solo il picco"
+- [x] Tooltip aggiornati (esclusione reciproca + bin fisso che attiva la mappa del bin)
+- [x] Cache-buster bumpato a `?v=m3.3.1`
+- [x] Verifica E2E real-browser: H_fixed ≠ H_base (mappa bin 50 sull'immagine, cache stabile), matrice esclusione 3/3 (check map-window→fixed-bin off, check peak→map-window off, uncheck→tutti off), 0 errori console, typo assente/nuovo presente
+- [x] Unit test 14/14 (nessun cambio in cube.js)
+- [ ] Per l'utente: verificare in uso reale che la mappa del bin con bin fisso faccia al caso suo
+
 ## Done (M3.3.1: cache-buster, xform centrata, tooltip — round 4 video, 2026-11-22)
 - [x] Diagnosi: video 3 mostra HTML nuovo + comportamento M3.3 morto → `app.js` vecchio in cache nel browser dell'utente; E2E real-click su codice corrente: tutto funzionante (Shift mono, wheel +2/100px, frecce +1, fixed-bin + linea arancione, xform)
 - [x] Cache-buster `?v=m3.3` su script module + stylesheet in `index.html` (convenzione: bump a ogni push che tocca `src/`)
