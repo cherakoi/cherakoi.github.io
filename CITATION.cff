@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "CHerakoi"
+type: software
+description: "Pure-frontend (vanilla HTML/CSS/JS) sonification of XRF cubes (HDF5/.npz): spatial map + per-pixel spectrum mapped to audio, with MediaPipe hand tracking or mouse test mode."
+authors:
+  - name: "Alessandro Bombini"
+version: 0.1.0
+date-released: 2026-11-22
+license: MIT
+repository-code: "https://github.com/androbomb/cherakoi"
+url: "https://github.com/androbomb/cherakoi"
+keywords:
+  - x-ray-fluorescence
+  - xrf
+  - sonification
+  - audio-visualization
+  - scientific-visualization
