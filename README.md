@@ -1,6 +1,6 @@
 # CHerakoi — Cultural Heritage XRF Sonification
 
-**Status: functional draft / not production-verified (2026-11-21).** Vanilla HTML/CSS/JS, no React, npm install or compilation required. Desktop-oriented, 100% browser-side XRF processing and sonification. Requires Internet access to load **third-party runtimes** on first use; the browser never sends the selected XRF file to the app's server. See `scientific_notes.md` for possible third-party runtime telemetry.
+**Status: v0.1.0 (2026-11-22) — functional proof-of-concept, not production-verified.** Vanilla HTML/CSS/JS, no React, npm install or compilation required. Desktop-oriented, 100% browser-side XRF processing and sonification. Requires Internet access to load **third-party runtimes** on first use; the browser never sends the selected XRF file to the app's server. See `scientific_notes.md` for possible third-party runtime telemetry.
 
 ## Quick start
 
@@ -78,4 +78,4 @@ Known restrictions: HDF5/WASM may consume substantial RAM and freeze the main UI
 - `templates-dhlab-projects(1).zip`: DASH DARKLY theme inspiration, accent `#4196B4`, and `src/deploy` conventions.
 - [dash-xrf-visualizer](https://github.com/androbomb/dash-xrf-visualizer), [chnet-xrf-raw-data-converter](https://github.com/androbomb/chnet-xrf-raw-data-converter) and its [output schema](https://github.com/androbomb/chnet-xrf-raw-data-converter/blob/master/output_schema.md).
 
-**Licensing:** Before publishing, choose CHerakoi's license, check dependencies/model redistribution terms and attribute original student contributions as appropriate. License choice remains **TBD**.
+**Licensing:** MIT (see `LICENSE`); citation metadata in `CITATION.cff`. Third-party runtimes (fflate, h5wasm, MediaPipe) are loaded from public CDNs under their own licenses, and the MediaPipe hand-landmark model is fetched from Google storage — check their terms if you vendor them offline.
