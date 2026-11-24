@@ -1,5 +1,10 @@
 # CHerakoi — to do
 
+## Done (M3.6: repo moved to org `cherakoi`, renamed `cherakoi.github.io` — 2026-11-24)
+- [x] Org `cherakoi` created + repo transferred (user, web UI); rename + refs updated + push (agent)
+- [x] Refs: CITATION.cff (`repository-code`, `url`), index.html footer links → `github.com/cherakoi/cherakoi.github.io`; git remote updated; old `androbomb/cherakoi` keeps permanent redirect
+- [x] Make public (user, web UI) + Pages enablement + site verification: next iteration
+
 ## Done (M3.5: usable_data demo files — 2026-11-24)
 - [x] "Usa demo file" button (next to the kept "Usa demo sintetica"): random pick from `usable_data/` via `manifest.json` — filename-independent; reuse of the existing `readXrfFile` path (File object), no loader changes
 - [x] `manifest.json` + `npm run demo-manifest` (scripts/gen-manifest.mjs) to refresh the file list when the set changes

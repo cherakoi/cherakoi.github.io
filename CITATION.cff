@@ -8,8 +8,8 @@ authors:
 version: 0.1.1
 date-released: 2026-11-24
 license: MIT
-repository-code: "https://github.com/androbomb/cherakoi"
-url: "https://github.com/androbomb/cherakoi"
+repository-code: "https://github.com/cherakoi/cherakoi.github.io"
+url: "https://github.com/cherakoi/cherakoi.github.io"
 keywords:
   - x-ray-fluorescence
   - xrf
