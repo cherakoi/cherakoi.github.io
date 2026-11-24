@@ -1,5 +1,13 @@
 # CHerakoi — to do
 
+## Done (M3.5: usable_data demo files — 2026-11-24)
+- [x] "Usa demo file" button (next to the kept "Usa demo sintetica"): random pick from `usable_data/` via `manifest.json` — filename-independent; reuse of the existing `readXrfFile` path (File object), no loader changes
+- [x] `manifest.json` + `npm run demo-manifest` (scripts/gen-manifest.mjs) to refresh the file list when the set changes
+- [x] `usable_data/credits.md` formalized: names, affiliations (Mandò/Ruberto/Mazzinghi: UniFi Physics + INFN Florence; Castelli/Giambi: INFN Florence), emails as `_AT_`, students, LABEC/INFN-CHNet thanks
+- [x] Footer: "Con ringraziamento a LABEC e INFN-CHNet per i dati di esempio" linking to the credits file on GitHub
+- [x] Cache-buster `?v=v0.1.0-1`; `.ipynb_checkpoints/` gitignored; README (quick start + project files) updated
+- [x] E2E real-browser: 4 real clicks → 2 different files loaded (145×215×512, ok), 0 errors; unit tests 14/14
+
 ## Done (M3.4: bin fisso → mappa del bin, esclusione reciproca, typo — user round 5, 2026-11-22)
 - [x] `updateMapSums`: la mappa di grigi su bin si attiva anche con **Bin fisso** (non solo Mappa di grigi) — stessa selezione `selectedBin`, stesso ±N da `map-window-n`
 - [x] Tre checkbox **mutuamente exclusive** (Suono solo il picco / Mappa di grigi / Bin fisso): check di uno → gli altri due off; deselect è libero (nessuno dei tre selezionato = OK). Implementato nel listener `input` esistente (3 righe)
