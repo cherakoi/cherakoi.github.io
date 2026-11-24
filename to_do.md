@@ -91,9 +91,9 @@
 - [ ] Vendor MediaPipe model/WASM + libraries if offline or privacy/SBOM policy requires it.
 - [ ] Choose license/attribution, browser coverage, deploy behind HTTPS; verify Docker and security headers.
 
-## In progress — branch `v0.1.2-mobile` (not merged)
+## Done (M3.7: mobile/touch — v0.1.2, 2026-11-24)
 
-- [ ] M3.7 mobile/touch: touch interaction (finger on map = pixel, finger on spectrum = bin, lift = hand off), input panels above the XRF map on narrow screens, small-screen polish. Merged to `main` when the user declares it finished (+ closure package).
+- [x] M3.7 mobile/touch: touch interaction (finger on map = pixel, finger on spectrum = bin, lift = hand off), input panels above the XRF map on narrow screens, small-screen polish.
 
 ## Blockers / uncertainties
 
