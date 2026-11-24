@@ -5,7 +5,7 @@ type: software
 description: "Pure-frontend (vanilla HTML/CSS/JS) sonification of XRF cubes (HDF5/.npz): spatial map + per-pixel spectrum mapped to audio, with MediaPipe hand tracking or mouse test mode."
 authors:
   - name: "Alessandro Bombini"
-version: 0.1.1
+version: 0.1.2
 date-released: 2026-11-24
 license: MIT
 repository-code: "https://github.com/cherakoi/cherakoi.github.io"

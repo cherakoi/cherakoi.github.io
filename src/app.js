@@ -325,6 +325,32 @@ window.addEventListener('keydown',event=>{
 window.addEventListener('keydown',event=>{if(event.key==='Shift'&&!shiftDown){shiftDown=true;if(el('mouse-mode').checked)applyMouseHands();}});
 window.addEventListener('keyup',event=>{if(event.key==='Shift'){shiftDown=false;wheelLeftY=null;wheelRem=0;if(el('mouse-mode').checked)applyMouseHands();}});
 window.addEventListener('blur',()=>{if(el('mouse-mode').checked){shiftDown=false;mouseRight=null;wheelRem=0;applyMouseHands();}});
+// Touch: finger on map = pixel (right-hand role); finger on spectrum = bin
+// (left-hand role). Lifting the finger removes that hand, like mouse mode;
+// "Bin fisso" still pins a bin without a finger. While the camera runs, its
+// per-frame updates take precedence over touch.
+let touchRight=null,touchLeft=null;
+function touchPoint(event,canvas){
+  const t=event.changedTouches[0];if(!t)return null;
+  const rect=canvas.getBoundingClientRect();
+  return {x:Math.max(0,Math.min(1,(t.clientX-rect.left)/rect.width)),y:Math.max(0,Math.min(1,(t.clientY-rect.top)/rect.height))};
+}
+function applyTouch(){updateHands({right:touchRight,left:touchLeft});}
+function mapTouch(event){if(!cube)return;touchRight=touchPoint(event,map);applyTouch();}
+function specTouch(event){
+  if(!cube)return;
+  const p=touchPoint(event,spectrum);if(!p)return;
+  const C=cube.channels,f=fit||{x:0,y:0,w:map.width,h:map.height};
+  const bin=Math.max(0,Math.min(C-1,Math.floor((p.x*spectrum.width-36)/((spectrum.width-58)/C))));
+  const t=C>1?1-bin/(C-1):1;
+  touchLeft={x:.5,y:(f.y+t*f.h)/map.height};
+  applyTouch();
+}
+for(const type of ['touchstart','touchmove']){map.addEventListener(type,mapTouch,{passive:true});spectrum.addEventListener(type,specTouch,{passive:true});}
+for(const type of ['touchend','touchcancel']){
+  map.addEventListener(type,()=>{touchRight=null;applyTouch();});
+  spectrum.addEventListener(type,()=>{touchLeft=null;applyTouch();});
+}
 window.addEventListener('pagehide',()=>{audio.silence();tracker?.stop();});
 // View transforms (rotate/flip the picture; data coordinates stay untouched).
 function applyXform(){

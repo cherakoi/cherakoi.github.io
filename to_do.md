@@ -91,6 +91,10 @@
 - [ ] Vendor MediaPipe model/WASM + libraries if offline or privacy/SBOM policy requires it.
 - [ ] Choose license/attribution, browser coverage, deploy behind HTTPS; verify Docker and security headers.
 
+## Done (M3.7: mobile/touch — v0.1.2, 2026-11-24)
+
+- [x] M3.7 mobile/touch: touch interaction (finger on map = pixel, finger on spectrum = bin, lift = hand off), input panels above the XRF map on narrow screens, small-screen polish.
+
 ## Blockers / uncertainties
 
 - No camera device and no audio output in this sandbox: live tracking (incl. M3.1 skeletons, L/R fix, WebGPU delegate) and audible behavior remain unverified (headless DSP-level audio checks only).

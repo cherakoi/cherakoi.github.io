@@ -1,6 +1,6 @@
 # CHerakoi — Cultural Heritage XRF Sonification
 
-**Status: v0.1.1 (2026-11-24) — functional proof-of-concept, not production-verified.** Live site: <https://cherakoi.github.io/> (GitHub Pages, deploys automatically on push to `main`). Vanilla HTML/CSS/JS, no React, npm install or compilation required. Desktop-oriented, 100% browser-side XRF processing and sonification. Requires Internet access to load **third-party runtimes** on first use; the browser never sends the selected XRF file to the app's server. See `scientific_notes.md` for possible third-party runtime telemetry.
+**Status: v0.1.2 (2026-11-24) — functional proof-of-concept, not production-verified.** Live site: <https://cherakoi.github.io/> (GitHub Pages, deploys automatically on push to `main`). Vanilla HTML/CSS/JS, no React, npm install or compilation required. Desktop and mobile (touch) layout, 100% browser-side XRF processing and sonification. Requires Internet access to load **third-party runtimes** on first use; the browser never sends the selected XRF file to the app's server. See `scientific_notes.md` for possible third-party runtime telemetry.
 
 ## Quick start
 
