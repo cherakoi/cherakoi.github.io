@@ -17,11 +17,16 @@ function message(text,isError=false) {el('message').textContent=text;el('message
 function options() {return {threshold:+el('threshold').value,maxVoices:+el('voices').value,volume:+el('volume').value/100,peakWindow:el('peak-mode').checked?Math.max(0,Math.floor(+el('peak-window').value||0)):null};}
 function frequencyRange(){return [+el('freq-min').value,+el('freq-max').value];}
 function showMetadata(name) {
-  const {width,height,channels,sourceChannels,energy}=cube;
+  const {width,height,channels,sourceChannels,energy,mask,meta}=cube;
   el('file-name').textContent=name;
   el('shape').textContent=`${height} × ${width} × ${sourceChannels} → ${channels}`;
-  el('map-meta').textContent=`${width}×${height} pixels / ${channels} bins`;
-  el('calibration').textContent=energy?`${energy[0].toFixed(3)} – ${energy.at(-1).toFixed(3)} keV`:'ADC bins · non calibrato';
+  const valid=mask?mask.reduce((a,b)=>a+(b?1:0),0):null;
+  el('map-meta').textContent=`${width}×${height} pixels / ${channels} bins${valid!==null?` / ${valid.toLocaleString('it-IT')} validi`:''}`;
+  const src=meta?.energySource==='energy_table'?'tabella ENERGY'
+    :meta?.energySource==='calibration'?'calibrazione m/q'
+    :meta?.energySource==='energy_axis'?'asse energy (OME)'
+    :meta?.energySource==='energy_npy'?'energy.npy':null;
+  el('calibration').textContent=energy?`${energy[0].toFixed(3)} – ${energy.at(-1).toFixed(3)} keV${src?` · ${src}`:''}`:'ADC bins · non calibrato';
   el('voices').max=channels;
   if (+el('voices').value>channels)el('voices').value=channels;
   el('voices-value').textContent=el('voices').value;

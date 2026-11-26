@@ -1,5 +1,18 @@
 # CHerakoi — to do
 
+## Done (M4.1: OME-TIFF + FITS import — v0.1.3, 2026-11-26)
+- [x] Content-based dispatch in `src/io.js`: magic sniff (NPZ/HDF5/OME-TIFF/FITS), 400 MiB cap, `validateCube` + rebin 512, mask/meta re-attach; pipeline invariata
+- [x] `src/ome.js` (geotiff UMD vendored): piano 1 = cube, piano 2 = mask, asse da OME-XML `energy_axis` → fallback `XRF_META.calibration` → ADC
+- [x] `src/fits.js` (jsfitsio UMD vendored): primary HDU C×H×W (BSCALE/BZERO), ext MASK, ext ENERGY, fallback `XRF_META` (zlib)
+- [x] `src/xrfmeta.js` (parse XRF_META condiviso: tryParseJson/inflateZlib/derivedCalibration/linearAxis), `src/vendor.js` (lazy loader, dedup, CJS per test Node)
+- [x] `vendor/`: geotiff 3.0.5 (MIT), jsfitsio 3.1.0 (Apache-2.0) + license; caricati solo all'upload
+- [x] UI minima: data summary mostra "N validi" (mask) e fonte dell'asse (tabella ENERGY / calibrazione m/q / asse OME / energy.npy); `accept=` allargata; `?v=v0.1.3`
+- [x] Test 25/25: writer in-memory OME-TIFF (TIFF LE) e FITS (BE, padding 2880) + voxel esatti post-rebin + metadati/mask + errori
+- [x] E2E browser 1440px: 5 file xrfraw reali (OME 512/1024 + mappa11, FITS 512/1024) → shape/asse keV/N validi corretti, 0 errori console, layout integro; regressione HDF5 demo-file ok
+- [x] `.gitignore`: `*.fits *.fit *.fts *.ome.tiff *.ome.tif` (dati non pubblici)
+- [x] Package: package.json 0.1.3, CITATION.cff 0.1.3 (2026-11-26), README (formati/energia/mask/limitazioni), merge --no-ff → main, tag v0.1.3 + release
+- [ ] Nota M4: la mask viene **riportata** ("N validi") ma non escluda ancora dai conteggi integrati (item M4 sotto)
+
 ## Done (M3.6: repo moved to org `cherakoi`, renamed `cherakoi.github.io` — 2026-11-24)
 - [x] Org `cherakoi` created + repo transferred (user, web UI); rename + refs updated + push (agent)
 - [x] Refs: CITATION.cff (`repository-code`, `url`), index.html footer links → `github.com/cherakoi/cherakoi.github.io`; git remote updated; old `androbomb/cherakoi` keeps permanent redirect
@@ -85,8 +98,8 @@
 
 ## Later (M4)
 
-- [ ] Add optional energy/metadata calibration `m,q` fallback (currently ignores H5 attributes / NPZ attrs JSON).
-- [ ] Handle mask visualization, acquisition missingness and/or auto-silent mask.
+- [ ] Add optional energy/metadata calibration `m,q` fallback for NPZ/HDF5 (currently ignores H5 attributes / NPZ attrs JSON). OME-TIFF/FITS già coperte da `XRF_META.calibration` in v0.1.3.
+- [ ] Handle mask **exclusion** from integrated counts and/or auto-silent mask (display "N validi" già in v0.1.3).
 - [ ] Shift NPZ/HDF5 decoding/rebin into a Worker for large data *if* profiled bottleneck.
 - [ ] Vendor MediaPipe model/WASM + libraries if offline or privacy/SBOM policy requires it.
 - [ ] Choose license/attribution, browser coverage, deploy behind HTTPS; verify Docker and security headers.

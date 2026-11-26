@@ -1,6 +1,14 @@
 # Never commit experimental or sensitive XRF cubes.
 /data_example/**
 !/data_example/.gitkeep
+
+# Non-public measurement data: never commit raw XRF cubes in these formats.
+*.fits
+*.fit
+*.fts
+*.ome.tiff
+*.ome.tif
+
 node_modules/
 dist/
 .DS_Store
