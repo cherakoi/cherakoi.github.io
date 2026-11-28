@@ -1,5 +1,15 @@
 # CHerakoi — to do
 
+## Done (M4.2: IT/EN language switch — v0.1.4, 2026-11-28)
+- [x] `src/i18n.js`: dizionario {it,en} (~55 chiavi, IT = testo originale), `t(key)` con interpolazione, `applyI18n()` (data-i18n / data-i18n-title / data-i18n-aria), lingua in `localStorage` (default IT)
+- [x] index.html: ~53 hook `data-i18n`, 12 tooltip `data-i18n-title`, 1 aria `data-i18n-aria`; "Local browser processing" → bottoni pill `IT 🇮🇹` | `EN 🇬🇧` (topbar-right, a sinistra del logo INFN, attivo evidenziato); `?v=v0.1.4`
+- [x] app.js: ~25 literal → `t(key)` (messaggi, data summary, status chips, canvas vuoto); click lingua → `setLang`+`applyI18n`+re-render (showMetadata+render); toLocaleString locale-aware
+- [x] style.css: `.lang-switch`/`.lang-btn` (pill, attivo #328aac, responsive)
+- [x] Test 28/28: `tests/i18n.test.js` parità chiavi it/en + nessun vuoto + sanita' count
+- [x] E2E browser 1440px: IT→EN→IT su sottotitolo/pannelli/tooltip/aria/chips/data summary; demo sintetica in EN (messaggio/calibrazione/stati tradotti); persistenza localStorage post-reload; 0 errori console, layout integro
+- [x] Package: package.json 0.1.4, CITATION.cff 0.1.4, README (status + verified), merge --no-ff → main, tag v0.1.4 + release
+- [ ] Nota next iter: eventuali fix dei termini EN (delegati all'utente); auto-detect `navigator.language` e per-utente persistenza rimandati
+
 ## Done (M4.1: OME-TIFF + FITS import — v0.1.3, 2026-11-26)
 - [x] Content-based dispatch in `src/io.js`: magic sniff (NPZ/HDF5/OME-TIFF/FITS), 400 MiB cap, `validateCube` + rebin 512, mask/meta re-attach; pipeline invariata
 - [x] `src/ome.js` (geotiff UMD vendored): piano 1 = cube, piano 2 = mask, asse da OME-XML `energy_axis` → fallback `XRF_META.calibration` → ADC
