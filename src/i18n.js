@@ -2,6 +2,7 @@
 // Keys must match 1:1 between languages (tests/i18n.test.js).
 export const STRINGS = {
   it: {
+    heroTitle: "Ascolta il suono nascosto dell'Arte.",
     subtitle: `Esplora uno spettro XRF con le dita. Destra: pixel. Sinistra: selezione della frequenza, oppure ascolto polifonico.`,
     msgWelcome: `Carica un file XRF oppure avvia la demo sintetica.`,
     mapTitle: `Mappa XRF`, mapTitleAccent: `/ spatial view`,
@@ -81,6 +82,7 @@ export const STRINGS = {
     validSuffix: `validi`,
   },
   en: {
+    heroTitle: "Listen to the hidden sound of Art.",
     subtitle: `Explore an XRF spectrum with your fingers. Right hand: pixel. Left hand: frequency selection, or polyphonic listening.`,
     msgWelcome: `Load an XRF file or start the synthetic demo.`,
     mapTitle: `XRF map`, mapTitleAccent: `/ spatial view`,
